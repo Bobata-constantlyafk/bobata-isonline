@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
 import { usePrefersReducedMotion } from "~/lib/motion";
 
-export const SCRIPTS = ["BOBATA", "БОБАТА", "ボバタ", "보바타"];
-export const SCRIPT_NAMES = ["LATIN", "CYRILLIC", "KATAKANA", "HANGUL"];
+export const SCRIPTS = ["BOBATA", "БОБАТА", "ボバタ", "보바타", "ΜΠΟΜΠΑΤΑ", "ⰁⰑⰁⰀⰕⰀ"];
+// Resolved-label per script. Glagolitic's label is deliberately given in
+// Cyrillic ("ГЛАГОЛИЦА" — the alphabet's own name for itself), not the Latin
+// "GLAGOLITIC" the other rows use — an intentional break from the pattern.
+export const SCRIPT_NAMES = [
+  "LATIN",
+  "CYRILLIC",
+  "KATAKANA",
+  "HANGUL",
+  "GREEK",
+  "ГЛАГОЛИЦА",
+];
 
 const HEX = "0123456789ABCDEF";
 const TICK_MS = 80;
