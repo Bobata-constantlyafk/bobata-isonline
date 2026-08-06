@@ -1,0 +1,257 @@
+@import "tailwindcss";
+@import "./styles/fonts.css";
+
+@theme {
+  /* Rail collapses to a top HUD strip below this width — README leaves the
+     exact behavior to us, this is the one custom breakpoint the design needs. */
+  --breakpoint-rail: 1100px;
+
+  --font-display: "Michroma", sans-serif;
+  --font-bitmap: "Silkscreen", monospace;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Chrome / neutral base — design_handoff_bobata_site/README.md */
+  --color-void: #07080a;
+  --color-border: #4a5055;
+  --color-border-bright: #6e7479;
+  --color-hairline: #2a2e32;
+  --color-hairline-2: #33383c;
+  --color-dim: #52585d;
+  --color-dim-2: #3d4247;
+  --color-muted: #6e767c;
+  --color-secondary: #8f989e;
+  --color-body: #c9d1d6;
+  --color-bright: #e8eef1;
+
+  /* Acid accents */
+  --color-acid-green: #a3ff12;
+  --color-acid-magenta: #ff00a8;
+  --color-acid-cyan: #00e5ff;
+  --color-acid-red: #ff2d55;
+  --color-acid-coldblue: #6ea8ff;
+
+  /* Zero radius everywhere — load-bearing for the aesthetic */
+  --radius-none: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+
+  --animate-flick: flick 1s steps(1, end) infinite;
+  --animate-jit: jit 1.4s steps(2, end) infinite;
+  --animate-crawl: crawl 26s linear infinite;
+  --animate-reticle: reticle 1.6s steps(2, end) infinite;
+  --animate-bar: bar 9s linear infinite alternate;
+  --animate-sweep: sweep 8s linear infinite;
+
+  @keyframes flick {
+    0%,
+    97%,
+    100% {
+      opacity: 1;
+    }
+    98% {
+      opacity: 0.35;
+    }
+    99% {
+      opacity: 0.82;
+    }
+  }
+  @keyframes jit {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    22% {
+      transform: translate(-1px, 1px);
+    }
+    55% {
+      transform: translate(1px, -1px);
+    }
+    78% {
+      transform: translate(-1px, 0);
+    }
+  }
+  @keyframes crawl {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes reticle {
+    0%,
+    100% {
+      opacity: 0.9;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+  @keyframes bar {
+    0% {
+      width: 12%;
+    }
+    100% {
+      width: 78%;
+    }
+  }
+  @keyframes sweep {
+    0% {
+      transform: translateY(-120%);
+    }
+    100% {
+      transform: translateY(900%);
+    }
+  }
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-void);
+}
+
+body {
+  font-family: var(--font-mono);
+  color: var(--color-body);
+}
+
+/* Custom cursor replaces the system cursor everywhere except touch devices
+   and prefers-reduced-motion, gated by the .has-custom-cursor class the
+   CustomCursor island applies to <html> once it decides to run. */
+.has-custom-cursor,
+.has-custom-cursor * {
+  cursor: none;
+}
+
+a {
+  color: var(--color-acid-cyan);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-acid-magenta);
+}
+
+::selection {
+  background: var(--color-acid-green);
+  color: var(--color-void);
+}
+
+/* Chrome text gradient with instant (no-transition) hover override — used
+   for the hero's per-character spans. A class, not inline styles, because
+   the hover state must switch background-clip off entirely (see README:
+   "switch off the gradient before setting a solid fill, otherwise the
+   text-shadow is invisible behind transparent glyphs") which inline style
+   props can't express as a :hover rule. */
+.chrome-char {
+  background-image: linear-gradient(
+    178deg,
+    #ffffff 0%,
+    #d6dde1 24%,
+    #626a70 48%,
+    #ffffff 56%,
+    #949da3 76%,
+    #e8eef1 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.chrome-char:hover {
+  background: none;
+  -webkit-text-fill-color: #00e5ff;
+  color: #00e5ff;
+  text-shadow: 4px 0 #ff00a8, -4px 0 #a3ff12;
+}
+
+/* Outline buttons that invert to a solid accent fill on hover. */
+.btn-outline-cyan {
+  border: 1px solid #00e5ff;
+  color: #00e5ff;
+  background: transparent;
+}
+.btn-outline-cyan:hover {
+  background: #00e5ff;
+  color: #07080a;
+}
+
+/* Contact submit — inverts to solid green with an RGB-split shadow. */
+.btn-send {
+  border: 1px solid #a3ff12;
+  color: #a3ff12;
+  background: transparent;
+}
+.btn-send:hover:not(:disabled) {
+  background: #a3ff12;
+  color: #07080a;
+  text-shadow: 3px 0 #ff00a8, -3px 0 #00e5ff;
+}
+
+.btn-outline-ghost {
+  border: 1px solid #4a5055;
+  color: #8f989e;
+  background: transparent;
+}
+.btn-outline-ghost:hover {
+  border-color: #ff00a8;
+  color: #ff00a8;
+}
+
+/* Skin-driven hover states. Skin colors are runtime data (frontmatter picks
+   a preset), so they arrive as inline custom properties rather than as
+   Tailwind classes. No `transition` anywhere: per the motion rule these
+   switches are instant, and they survive prefers-reduced-motion because
+   hover states are meant to stay. */
+
+/* Card / tile: accent border plus the positional jitter. */
+.hover-shift:hover {
+  border-color: var(--accent);
+  transform: var(--shift);
+}
+
+/* About fragment cards: border color only. */
+.hover-border:hover {
+  border-color: var(--accent);
+}
+
+/* Work bar tiles: accent border plus a tinted interior. */
+.hover-tile:hover {
+  border-color: var(--accent);
+  background-color: var(--hover-bg);
+}
+
+/* Ranked-list and long-form rows: a wash of the accent. */
+.hover-tint:hover {
+  background-color: var(--tint);
+}
+
+/* RGB channel split on a title. */
+.hover-split:hover {
+  text-shadow: var(--split);
+}
+
+/* Outline button inverting to a solid accent fill with dark text. */
+.hover-invert {
+  border: 1px solid var(--edge);
+  color: var(--accent);
+  background: transparent;
+}
+.hover-invert:hover {
+  background: var(--accent);
+  color: var(--void);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
