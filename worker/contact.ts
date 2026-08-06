@@ -1,20 +1,21 @@
 /**
- * POST /api/contact — Cloudflare Pages Function.
+ * POST /api/contact
  *
  * Validates the submission server-side (the client's checks are a
  * convenience, not a control) and relays it by email through Resend.
  *
- * Required environment variables, set in the Pages project settings:
+ * Required secrets, set with `wrangler secret put` or in the Worker's
+ * dashboard settings:
  *   RESEND_API_KEY   — from https://resend.com/api-keys
  *   CONTACT_TO       — the inbox that should receive submissions
  *   CONTACT_FROM     — a verified sender on your Resend domain,
  *                      e.g. "Bobata <signal@yourdomain.com>"
  */
 
-interface Env {
-  RESEND_API_KEY: string;
-  CONTACT_TO: string;
-  CONTACT_FROM: string;
+export interface ContactEnv {
+  RESEND_API_KEY?: string;
+  CONTACT_TO?: string;
+  CONTACT_FROM?: string;
 }
 
 const MAX_HANDLE = 80;
@@ -27,7 +28,10 @@ function json(body: unknown, status = 200) {
   });
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export async function handleContact(
+  request: Request,
+  env: ContactEnv,
+): Promise<Response> {
   let payload: { handle?: unknown; message?: unknown; website?: unknown };
   try {
     payload = await request.json();
@@ -77,4 +81,4 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   return json({ ok: true });
-};
+}

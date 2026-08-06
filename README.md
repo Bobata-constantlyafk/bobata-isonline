@@ -1,16 +1,6 @@
 # Bobata's Personal Website
 Welcome back, wanderer. 
 
-# bobata-isonline
-
-React Router v7 + Vite + Tailwind v4, fully prerendered to static HTML and
-deployed to Cloudflare Pages.
-
-The design spec and the original HTML mockups (`design_handoff_bobata_site/`)
-are kept outside this repo. That mockup is the source of truth for colors,
-sizes, and copy — code comments referring to it point at that bundle, not at
-a path inside this repository.
-
 ## Local development
 
 ```bash

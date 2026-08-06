@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bobata-isonline",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-01-01",
+
+  // The prerendered site. `directory` must match the Vite build output.
+  // Requests fall through to the Worker (worker/index.ts) only when no
+  // matching asset exists, so /api/* reaches code and everything else is
+  // served straight from the edge.
+  "assets": {
+    "directory": "./build/client",
+    "binding": "ASSETS"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+
+  // Secrets are NOT set here — they would end up in git. Set them with
+  // `wrangler secret put RESEND_API_KEY` or in the Worker's dashboard
+  // settings: RESEND_API_KEY, CONTACT_TO, CONTACT_FROM.
+}

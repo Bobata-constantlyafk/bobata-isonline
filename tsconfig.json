@@ -5,9 +5,9 @@
     "**/.client/**/*",
     ".react-router/types/**/*"
   ],
-  // Pages Functions run on the Workers runtime, not in the browser — they
-  // get their own config so their globals don't leak into app code.
-  "exclude": ["functions"],
+  // The Worker runs on the Workers runtime, not in the browser — it gets
+  // its own config so its globals don't leak into app code.
+  "exclude": ["worker"],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": ["node", "vite/client"],

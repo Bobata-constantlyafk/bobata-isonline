@@ -5,8 +5,9 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
-    "preview": "vite preview --outDir build/client",
-    "typecheck": "react-router typegen && tsc && tsc -p functions"
+    "preview": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck": "react-router typegen && tsc && tsc -p worker"
   },
   "dependencies": {
     "isbot": "^5",
@@ -27,6 +28,7 @@
     "remark-mdx-frontmatter": "^5.2.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "wrangler": "^4.119.0"
   }
 }
