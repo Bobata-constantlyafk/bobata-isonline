@@ -86,8 +86,15 @@ export async function handleContact(
   });
 
   if (!res.ok) {
+    // Full body goes to the Worker log only — it can echo the recipient
+    // address back, which must not reach a public response. The bare status
+    // code is safe and is enough to tell the causes apart:
+    // 401 bad key · 403 sender/recipient not allowed · 422 malformed from/to.
     console.error("contact: resend responded", res.status, await res.text());
-    return json({ ok: false, error: "TRANSMISSION FAILED" }, 502);
+    return json(
+      { ok: false, error: `TRANSMISSION FAILED (UPSTREAM ${res.status})` },
+      502,
+    );
   }
 
   return json({ ok: true });
