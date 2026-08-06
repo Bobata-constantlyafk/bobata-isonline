@@ -56,9 +56,19 @@ export async function handleContact(
     return json({ ok: false, error: "INVALID TRANSMISSION" }, 400);
   }
 
-  if (!env.RESEND_API_KEY || !env.CONTACT_TO || !env.CONTACT_FROM) {
-    console.error("contact: missing RESEND_API_KEY / CONTACT_TO / CONTACT_FROM");
-    return json({ ok: false, error: "CHANNEL OFFLINE" }, 500);
+  // Name the missing bindings so a misconfigured deploy is diagnosable
+  // without dashboard access. Only names are reported, never values — and
+  // these names are already public in the README.
+  const missing = (
+    ["RESEND_API_KEY", "CONTACT_TO", "CONTACT_FROM"] as const
+  ).filter((key) => !env[key]);
+
+  if (missing.length > 0) {
+    console.error("contact: missing bindings:", missing.join(", "));
+    return json(
+      { ok: false, error: `CHANNEL OFFLINE — MISSING: ${missing.join(", ")}` },
+      500,
+    );
   }
 
   const res = await fetch("https://api.resend.com/emails", {
