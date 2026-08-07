@@ -1,3 +1,4 @@
+import { handleWhoami, type AdminEnv } from "./admin";
 import { handleContact, type ContactEnv } from "./contact";
 import { handleVisitors, type VisitorsEnv } from "./visitors";
 
@@ -14,7 +15,7 @@ import { handleVisitors, type VisitorsEnv } from "./visitors";
  * That convention is Pages-only and is silently ignored by a Worker, which
  * is why /api/contact 404'd on the first deploy.
  */
-export interface Env extends ContactEnv, VisitorsEnv {
+export interface Env extends ContactEnv, VisitorsEnv, AdminEnv {
   ASSETS: Fetcher;
 }
 
@@ -40,6 +41,19 @@ export default {
         });
       }
       return handleVisitors(request, env);
+    }
+
+    // Every /api/admin/* route re-verifies the Access JWT itself (see
+    // worker/access.ts) — the edge-level Access policy on /admin* is the
+    // primary gate, this is defense-in-depth, not a substitute for it.
+    if (url.pathname === "/api/admin/whoami") {
+      if (request.method !== "GET") {
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: { allow: "GET" },
+        });
+      }
+      return handleWhoami(request, env);
     }
 
     return env.ASSETS.fetch(request);

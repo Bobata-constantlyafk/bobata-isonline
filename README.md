@@ -68,16 +68,22 @@ lives here, not in a subfolder).
 | Deploy command | `npx wrangler deploy` |
 | Node version | 22 (`.nvmrc`) |
 
-### Secrets
+### Secrets and variables
 
 Set these in the Worker's dashboard under Settings → Variables and Secrets, or
-with `wrangler secret put <NAME>`. Never commit them.
+with `wrangler secret put <NAME>`.
 
-| Name | Required | Notes |
-|---|---|---|
-| `RESEND_API_KEY` | optional | from resend.com/api-keys — enables an email notification alongside the D1 save |
-| `CONTACT_TO` | optional | inbox that receives the notification |
-| `CONTACT_FROM` | optional | verified sender, e.g. `Bobata <signal@example.com>` |
+| Name | Required | Type | Notes |
+|---|---|---|---|
+| `RESEND_API_KEY` | optional | Secret | from resend.com/api-keys — enables an email notification alongside the D1 save |
+| `CONTACT_TO` | optional | Plaintext | inbox that receives the notification |
+| `CONTACT_FROM` | optional | Plaintext | verified sender, e.g. `Bobata <signal@example.com>` |
+| `ACCESS_TEAM_DOMAIN` | required for `/admin` | Plaintext | e.g. `boyandechev.cloudflareaccess.com` — from Zero Trust → Settings → Custom Pages (or the team's overview page) |
+| `ACCESS_AUD` | required for `/admin` | Plaintext | the Access Application's Audience tag, shown on the application's Overview page after it's created |
+
+`ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` aren't secret — the AUD tag is already
+inside every Access JWT's own `aud` claim, so exposing it grants nothing. Set
+them as **Plaintext**, not Secret.
 
 The contact form's one hard requirement is the `DB` binding (wired in
 `wrangler.jsonc`, not a secret) — a submission is saved there regardless of
