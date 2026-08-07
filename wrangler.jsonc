@@ -15,7 +15,20 @@
 
   "observability": {
     "enabled": true
-  }
+  },
+
+  // Cloudflare's own SQLite, bound directly into the Worker — no
+  // connection string, no separate credential to leak. `wrangler dev`
+  // spins up a local copy automatically; migrations/ is applied to both
+  // local and remote with `wrangler d1 migrations apply`.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bobata-db",
+      "database_id": "7193bfed-b884-4e80-bdbb-8c6aa30bead3",
+      "migrations_dir": "./migrations"
+    }
+  ]
 
   // Secrets are NOT set here — they would end up in git. Set them with
   // `wrangler secret put RESEND_API_KEY` or in the Worker's dashboard

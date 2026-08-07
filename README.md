@@ -13,45 +13,68 @@ npm run dev
 
 | Script | Does |
 |---|---|
-| `npm run dev` | Dev server on :5173 |
+| `npm run dev` | Dev server on :5173 (site only, no Worker/D1) |
 | `npm run build` | Production build + prerender every route |
-| `npm run preview` | Serve the built output locally |
-| `npm run typecheck` | Typecheck the app and the Pages Functions |
+| `npm run preview` | `wrangler dev` — full Worker + local D1, matches production |
+| `npm run deploy` | Build, then `wrangler deploy` straight to Cloudflare |
+| `npm run typecheck` | Typecheck the app and the Worker |
 
 ## How it's built
 
 `ssr: false` plus a `prerender` list in `react-router.config.ts` means there is
-no server: every route becomes a static HTML file at build time. Three small
-client islands hydrate on top — the decode hero, the rail widgets, and the
-custom cursor. Article slugs are read from `app/content/articles/*.mdx`, so
-adding a file adds a prerendered page.
+no server for the site itself: every route becomes a static HTML file at
+build time. Three small client islands hydrate on top — the decode hero, the
+rail widgets, and the custom cursor. Article slugs are read from
+`app/content/articles/*.mdx`, so adding a file adds a prerendered page.
 
 Skins are defined once in `app/lib/skins.ts`. An article's `skin` frontmatter
 field picks one, and both its card on `/articles` and its detail page read
 every color from that preset.
 
-## Deploying (Cloudflare Pages)
+A small Worker (`worker/index.ts`) sits in front of the static assets purely
+to answer `/api/*` — everything else falls straight through to the prerendered
+files. This is a Cloudflare **Worker**, not Pages: there is no `functions/`
+directory, and Pages Functions conventions don't apply here.
 
-Connected to Git — pushing to `main` builds and deploys automatically.
+## Data (Cloudflare D1)
+
+One database, `bobata-db`, bound as `DB`. Schema lives in `migrations/` as
+plain SQL files, applied with:
+
+```bash
+npx wrangler d1 migrations apply bobata-db --local   # your machine
+npx wrangler d1 migrations apply bobata-db --remote  # live site
+```
+
+| Table | Holds |
+|---|---|
+| `messages` | Contact form submissions. `read`/`archived` are flags an admin toggles — nothing is deleted on view. |
+| `counters` | Named single-row counters (`visitors` today), so a new counter is an `INSERT`, not a migration. |
+
+## Deploying (Cloudflare Workers)
+
+Connected to Git — pushing to the default branch builds and deploys
+automatically. Root directory for the build is this repo's root (`package.json`
+lives here, not in a subfolder).
 
 | Setting | Value |
 |---|---|
-| Root directory | `bobata-isonline` |
 | Build command | `npm run build` |
-| Build output directory | `build/client` |
-| Node version | 22 (`.nvmrc`, or a `NODE_VERSION` variable) |
+| Deploy command | `npx wrangler deploy` |
+| Node version | 22 (`.nvmrc`) |
 
-### Environment variables
+### Secrets
 
-Set these in the Pages project under Settings → Environment variables. They are
-secrets — never commit them.
+Set these in the Worker's dashboard under Settings → Variables and Secrets, or
+with `wrangler secret put <NAME>`. Never commit them.
 
-| Name | Used by | Notes |
+| Name | Required | Notes |
 |---|---|---|
-| `RESEND_API_KEY` | `functions/api/contact.ts` | from resend.com/api-keys |
-| `CONTACT_TO` | same | inbox that receives form submissions |
-| `CONTACT_FROM` | same | verified sender, e.g. `Bobata <signal@example.com>` |
+| `RESEND_API_KEY` | optional | from resend.com/api-keys — enables an email notification alongside the D1 save |
+| `CONTACT_TO` | optional | inbox that receives the notification |
+| `CONTACT_FROM` | optional | verified sender, e.g. `Bobata <signal@example.com>` |
 
-Until these are set the contact form returns `CHANNEL OFFLINE`. Locally, a Vite
-middleware in `vite.config.ts` stands in for the function and only logs the
-submission — it never sends mail.
+The contact form's one hard requirement is the `DB` binding (wired in
+`wrangler.jsonc`, not a secret) — a submission is saved there regardless of
+whether the three Resend variables above are set. If they're absent, the
+message still saves; it just doesn't also get emailed.

@@ -1,18 +1,26 @@
+import { hashIp } from "./hash";
+
 /**
  * POST /api/contact
  *
  * Validates the submission server-side (the client's checks are a
- * convenience, not a control) and relays it by email through Resend.
+ * convenience, not a control), then stores it in D1. That storage is the
+ * one thing that must succeed for the request to succeed.
  *
- * Required secrets, set with `wrangler secret put` or in the Worker's
+ * Email is a best-effort bonus notification, not a requirement: if Resend
+ * secrets are configured it tries to send one, but a Resend failure never
+ * fails the request — the message is already safely in the database, and
+ * an admin can read it from there regardless of whether an email arrived.
+ *
+ * Optional secrets, set with `wrangler secret put` or in the Worker's
  * dashboard settings:
  *   RESEND_API_KEY   — from https://resend.com/api-keys
- *   CONTACT_TO       — the inbox that should receive submissions
- *   CONTACT_FROM     — a verified sender on your Resend domain,
- *                      e.g. "Bobata <signal@yourdomain.com>"
+ *   CONTACT_TO       — the inbox that should receive the notification
+ *   CONTACT_FROM     — a verified sender on your Resend domain
  */
 
 export interface ContactEnv {
+  DB: D1Database;
   RESEND_API_KEY?: string;
   CONTACT_TO?: string;
   CONTACT_FROM?: string;
@@ -28,6 +36,37 @@ function json(body: unknown, status = 200) {
   });
 }
 
+async function notifyByEmail(
+  env: ContactEnv,
+  handle: string,
+  message: string,
+): Promise<void> {
+  if (!env.RESEND_API_KEY || !env.CONTACT_TO || !env.CONTACT_FROM) {
+    return;
+  }
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${env.RESEND_API_KEY}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        from: env.CONTACT_FROM,
+        to: [env.CONTACT_TO],
+        subject: `Inbound signal — ${handle}`,
+        text: `From: ${handle}\n\n${message}`,
+      }),
+    });
+    if (!res.ok) {
+      console.error("contact: resend notify failed", res.status, await res.text());
+    }
+  } catch (error) {
+    console.error("contact: resend notify threw", error);
+  }
+}
+
 export async function handleContact(
   request: Request,
   env: ContactEnv,
@@ -40,7 +79,7 @@ export async function handleContact(
   }
 
   // Honeypot: silently accept so bots don't learn they were caught, but
-  // send nothing.
+  // store nothing and notify nothing.
   if (typeof payload.website === "string" && payload.website.trim() !== "") {
     return json({ ok: true });
   }
@@ -56,46 +95,24 @@ export async function handleContact(
     return json({ ok: false, error: "INVALID TRANSMISSION" }, 400);
   }
 
-  // Name the missing bindings so a misconfigured deploy is diagnosable
-  // without dashboard access. Only names are reported, never values — and
-  // these names are already public in the README.
-  const missing = (
-    ["RESEND_API_KEY", "CONTACT_TO", "CONTACT_FROM"] as const
-  ).filter((key) => !env[key]);
+  const ip = request.headers.get("cf-connecting-ip");
+  const ipHash = ip ? await hashIp(ip) : null;
+  const userAgent = request.headers.get("user-agent");
 
-  if (missing.length > 0) {
-    console.error("contact: missing bindings:", missing.join(", "));
-    return json(
-      { ok: false, error: `CHANNEL OFFLINE — MISSING: ${missing.join(", ")}` },
-      500,
-    );
+  try {
+    await env.DB.prepare(
+      "INSERT INTO messages (handle, message, ip_hash, user_agent) VALUES (?, ?, ?, ?)",
+    )
+      .bind(handle, message, ipHash, userAgent)
+      .run();
+  } catch (error) {
+    console.error("contact: D1 insert failed", error);
+    return json({ ok: false, error: "CHANNEL OFFLINE" }, 500);
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      from: env.CONTACT_FROM,
-      to: [env.CONTACT_TO],
-      subject: `Inbound signal — ${handle}`,
-      text: `From: ${handle}\n\n${message}`,
-    }),
-  });
-
-  if (!res.ok) {
-    // Full body goes to the Worker log only — it can echo the recipient
-    // address back, which must not reach a public response. The bare status
-    // code is safe and is enough to tell the causes apart:
-    // 401 bad key · 403 sender/recipient not allowed · 422 malformed from/to.
-    console.error("contact: resend responded", res.status, await res.text());
-    return json(
-      { ok: false, error: `TRANSMISSION FAILED (UPSTREAM ${res.status})` },
-      502,
-    );
-  }
+  // Awaited so logs land before the Worker's execution context can be torn
+  // down, but its outcome never changes the response below.
+  await notifyByEmail(env, handle, message);
 
   return json({ ok: true });
 }
