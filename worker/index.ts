@@ -1,4 +1,5 @@
 import { handleContact, type ContactEnv } from "./contact";
+import { handleVisitors, type VisitorsEnv } from "./visitors";
 
 /**
  * Worker entry point.
@@ -13,7 +14,7 @@ import { handleContact, type ContactEnv } from "./contact";
  * That convention is Pages-only and is silently ignored by a Worker, which
  * is why /api/contact 404'd on the first deploy.
  */
-export interface Env extends ContactEnv {
+export interface Env extends ContactEnv, VisitorsEnv {
   ASSETS: Fetcher;
 }
 
@@ -29,6 +30,16 @@ export default {
         });
       }
       return handleContact(request, env);
+    }
+
+    if (url.pathname === "/api/visitors") {
+      if (request.method !== "GET") {
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: { allow: "GET" },
+        });
+      }
+      return handleVisitors(request, env);
     }
 
     return env.ASSETS.fetch(request);

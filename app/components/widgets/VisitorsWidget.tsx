@@ -1,26 +1,34 @@
 import { useEffect, useState } from "react";
 import { WidgetSlot } from "./WidgetSlot";
 
-const BASE = 4092;
-
 /**
- * Placeholder counter, ticking client-side like the prototype. The real
- * version is a Cloudflare Pages Function backed by KV, incrementing once per
- * session — a later phase; this widget will swap its data source for a
- * fetch to /api/visitors without changing its shell.
+ * Real count, read from D1 via the Worker's /api/visitors — see
+ * worker/visitors.ts. That endpoint gates the increment behind a session
+ * cookie, so a refresh doesn't inflate it; this component just displays
+ * whatever it's told.
+ *
+ * Only reachable through the Worker (wrangler dev / production). Under
+ * plain `npm run dev` there's no Worker to answer, so a failed fetch is
+ * swallowed and the placeholder dashes stay up rather than throwing.
  */
 export function VisitorsWidget() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    const start = Date.now();
-    const update = () => {
-      const elapsed = Math.floor((Date.now() - start) / 1000);
-      setCount(BASE + Math.floor(elapsed / 90));
+    let cancelled = false;
+
+    fetch("/api/visitors")
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data: { visitors: number }) => {
+        if (!cancelled) setCount(data.visitors);
+      })
+      .catch(() => {
+        // No Worker reachable — leave the placeholder showing.
+      });
+
+    return () => {
+      cancelled = true;
     };
-    update();
-    const id = setInterval(update, 5000);
-    return () => clearInterval(id);
   }, []);
 
   return (

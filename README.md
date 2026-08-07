@@ -51,6 +51,11 @@ npx wrangler d1 migrations apply bobata-db --remote  # live site
 | `messages` | Contact form submissions. `read`/`archived` are flags an admin toggles — nothing is deleted on view. |
 | `counters` | Named single-row counters (`visitors` today), so a new counter is an `INSERT`, not a migration. |
 
+| Endpoint | Reads/writes |
+|---|---|
+| `POST /api/contact` | Inserts into `messages`. Server-validated; a honeypot field silently no-ops. |
+| `GET /api/visitors` | Reads `counters`, incrementing first unless the request carries a `bobata_visited` session cookie (no Max-Age — cleared when the browser closes, so the next visit counts again). |
+
 ## Deploying (Cloudflare Workers)
 
 Connected to Git — pushing to the default branch builds and deploys
