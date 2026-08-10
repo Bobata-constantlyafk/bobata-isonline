@@ -291,7 +291,9 @@ export async function handleUpdateArticle(
   return json({ ok: true });
 }
 
-/** DELETE /api/admin/articles/:slug — essays only, same reasoning as PATCH. */
+/** DELETE /api/admin/articles/:slug — either type. article_items cascades
+ *  via the FK in migrations/0002_articles.sql, so deleting a list-type row
+ *  also removes its nine items in the same statement. */
 export async function handleDeleteArticle(
   request: Request,
   env: ArticlesEnv,
@@ -302,17 +304,11 @@ export async function handleDeleteArticle(
   }
 
   const existing = await env.DB.prepare(
-    "SELECT type FROM articles WHERE slug = ?",
+    "SELECT 1 FROM articles WHERE slug = ?",
   )
     .bind(slug)
-    .first<{ type: string }>();
+    .first();
   if (!existing) return json({ ok: false, error: "NOT FOUND" }, 404);
-  if (existing.type !== "essay") {
-    return json(
-      { ok: false, error: "RANKED LISTS AREN'T DELETABLE HERE YET" },
-      400,
-    );
-  }
 
   await env.DB.prepare("DELETE FROM articles WHERE slug = ?").bind(slug).run();
   return json({ ok: true });

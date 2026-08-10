@@ -30,9 +30,12 @@ export default function AdminArticles() {
 
   useEffect(load, []);
 
-  async function remove(slug: string, title: string) {
-    if (!confirm(`Delete "${title}" permanently? This can't be undone.`))
-      return;
+  async function remove(slug: string, title: string, type: "list" | "essay") {
+    const warning =
+      type === "list"
+        ? `Delete "${title}" permanently? This removes the whole ranked list — all nine rows go with it. This can't be undone.`
+        : `Delete "${title}" permanently? This can't be undone.`;
+    if (!confirm(warning)) return;
     const res = await fetch(`/api/admin/articles/${slug}`, {
       method: "DELETE",
     });
@@ -82,14 +85,12 @@ export default function AdminArticles() {
               >
                 {a.type === "list" ? "EDIT THE NINES" : "EDIT"}
               </Link>
-              {a.type === "essay" && (
-                <button
-                  onClick={() => remove(a.slug, a.title)}
-                  className="text-acid-magenta hover:text-bright"
-                >
-                  DELETE
-                </button>
-              )}
+              <button
+                onClick={() => remove(a.slug, a.title, a.type)}
+                className="text-acid-magenta hover:text-bright"
+              >
+                DELETE
+              </button>
             </div>
           </div>
         ))}
