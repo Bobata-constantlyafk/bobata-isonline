@@ -17,6 +17,14 @@
     "enabled": true
   },
 
+  // Neither value is secret: the AUD tag is already inside every Access
+  // JWT's own `aud` claim (see worker/access.ts), and the team domain is
+  // just a URL. Safe to commit.
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "misty-dream-75cd.cloudflareaccess.com",
+    "ACCESS_AUD": "50ffacc4d5ad1a91e0f00c0756f7e76e824ffe6042a6b6fbd5ef2e8990663e74"
+  },
+
   // Cloudflare's own SQLite, bound directly into the Worker — no
   // connection string, no separate credential to leak. `wrangler dev`
   // spins up a local copy automatically; migrations/ is applied to both
