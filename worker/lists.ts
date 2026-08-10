@@ -17,19 +17,23 @@ async function requireAdmin(request: Request, env: ListsEnv) {
 
 const MAX_TITLE = 120;
 const MAX_META = 60;
+const MAX_IMAGE_URL = 500;
+const MAX_REVIEW = 4000;
 const ITEM_COUNT = 9;
 
 interface ItemInput {
   title?: unknown;
   meta?: unknown;
+  imageUrl?: unknown;
+  review?: unknown;
 }
 
 /**
  * PATCH /api/admin/lists/:slug — replaces all nine rows of a ranked-list
  * article. Deliberately its own endpoint and its own validation, separate
  * from the essay PATCH in worker/articles.ts: the payload shape (nine
- * title/meta pairs) has nothing in common with an essay's fields, and this
- * only ever touches article_items, never the articles row itself.
+ * title/meta/imageUrl/review groups) has nothing in common with an essay's
+ * fields, and this only ever touches article_items, never the articles row.
  */
 export async function handleUpdateListItems(
   request: Request,
@@ -64,7 +68,12 @@ export async function handleUpdateListItems(
     );
   }
 
-  const items: { title: string; meta: string }[] = [];
+  const items: {
+    title: string;
+    meta: string;
+    imageUrl: string | null;
+    review: string | null;
+  }[] = [];
   for (const [i, raw] of body.items.entries()) {
     const item = raw as ItemInput;
     if (
@@ -81,7 +90,31 @@ export async function handleUpdateListItems(
     ) {
       return json({ ok: false, error: `ROW ${i + 1}: INVALID META` }, 400);
     }
-    items.push({ title: item.title, meta: item.meta });
+    // Both optional — trimmed to null rather than stored as an empty
+    // string, so "has a review" can be checked with a plain truthiness
+    // test everywhere it matters (row styling, prerender enumeration).
+    let imageUrl: string | null = null;
+    if (item.imageUrl !== undefined && item.imageUrl !== null) {
+      if (typeof item.imageUrl !== "string" || item.imageUrl.length > MAX_IMAGE_URL) {
+        return json({ ok: false, error: `ROW ${i + 1}: INVALID IMAGE URL` }, 400);
+      }
+      const trimmed = item.imageUrl.trim();
+      if (trimmed && !/^https:\/\//.test(trimmed)) {
+        return json(
+          { ok: false, error: `ROW ${i + 1}: IMAGE URL MUST START WITH https://` },
+          400,
+        );
+      }
+      imageUrl = trimmed || null;
+    }
+    let review: string | null = null;
+    if (item.review !== undefined && item.review !== null) {
+      if (typeof item.review !== "string" || item.review.length > MAX_REVIEW) {
+        return json({ ok: false, error: `ROW ${i + 1}: INVALID REVIEW` }, 400);
+      }
+      review = item.review.trim() || null;
+    }
+    items.push({ title: item.title, meta: item.meta, imageUrl, review });
   }
 
   // Replace-all rather than diff-and-update: nine rows is little enough
@@ -94,8 +127,8 @@ export async function handleUpdateListItems(
     ),
     ...items.map((item, i) =>
       env.DB.prepare(
-        "INSERT INTO article_items (article_id, position, title, meta) VALUES (?, ?, ?, ?)",
-      ).bind(article.id, i + 1, item.title, item.meta),
+        "INSERT INTO article_items (article_id, position, title, meta, image_url, review) VALUES (?, ?, ?, ?, ?, ?)",
+      ).bind(article.id, i + 1, item.title, item.meta, item.imageUrl, item.review),
     ),
   ]);
 

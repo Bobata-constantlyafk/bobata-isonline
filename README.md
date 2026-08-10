@@ -51,15 +51,15 @@ npx wrangler d1 migrations apply bobata-db --remote  # live site
 | `messages` | Contact form submissions. `read`/`archived` are flags an admin toggles — nothing is deleted on view. |
 | `counters` | Named single-row counters (`visitors` today), so a new counter is an `INSERT`, not a migration. |
 | `articles` | Every article/ranked-list — see "Articles live in D1" below. |
-| `article_items` | The nine rows of a ranked-list article, FK'd to `articles`. |
+| `article_items` | The nine rows of a ranked-list article, FK'd to `articles`. `image_url` and `review` are both optional — a pasted link and freeform text, not an upload (no image storage is built). `review`'s presence, not a separate flag, is what makes a row clickable on the public page and gives it a detail page at `/articles/:slug/:position`. |
 
 | Endpoint | Reads/writes |
 |---|---|
 | `POST /api/contact` | Inserts into `messages`. Server-validated; a honeypot field silently no-ops. |
 | `GET /api/visitors` | Reads `counters`, incrementing first unless the request carries a `bobata_visited` session cookie (no Max-Age — cleared when the browser closes, so the next visit counts again). |
 | `GET/PATCH/DELETE /api/admin/messages(/:id)` | Admin inbox. Every handler re-verifies the Access JWT itself (`worker/access.ts`). |
-| `GET/POST /api/admin/articles`, `GET/PATCH/DELETE /api/admin/articles/:slug` | Article CRUD. Creating always makes `type='essay'` (lists are created via migrations only). PATCH rejects rows where `type='list'` — the Nines editor is a separate endpoint below, so this guards against corrupting one with the wrong shape of form. DELETE works on either type; deleting a list cascades to its nine `article_items` via the FK. `GET .../:slug` also returns `items` for list-type rows. |
-| `PATCH /api/admin/lists/:slug` | Replaces all nine `article_items` rows for a ranked-list article in one atomic `env.DB.batch()` (delete-all then reinsert). Rejects `type='essay'` rows the same way the articles endpoint rejects lists. |
+| `GET/POST /api/admin/articles`, `GET/PATCH/DELETE /api/admin/articles/:slug` | Article CRUD. Creating always makes `type='essay'` (lists are created via migrations only). PATCH rejects rows where `type='list'` — the Nines editor is a separate endpoint below, so this guards against corrupting one with the wrong shape of form. DELETE works on either type; deleting a list cascades to its nine `article_items` via the FK. `GET .../:slug` also returns `items` (including `imageUrl`/`review`) for list-type rows. |
+| `PATCH /api/admin/lists/:slug` | Replaces all nine `article_items` rows for a ranked-list article in one atomic `env.DB.batch()` (delete-all then reinsert). Rejects `type='essay'` rows the same way the articles endpoint rejects lists. `imageUrl` must start with `https://` if set; both it and `review` are optional. |
 
 ### Articles live in D1, not just as files
 
@@ -86,6 +86,12 @@ Create the token at My Profile → API Tokens → Create Custom Token, scoped to
 your account, permission **Account → D1 → Read**. `scripts/generate-seed-sql.mjs`
 is the one-time tool that produced `migrations/0003_seed_articles.sql` from
 the original hand-written files; it's not part of any ongoing process.
+
+`react-router.config.ts` reads the same regenerated `.mdx` frontmatter (via
+`gray-matter`, not the D1 API — it doesn't need the token) to decide which
+`/articles/:slug/:position` review pages to prerender: only rows whose
+`review` field is actually set get a page. A row without one has no link to
+it anywhere on the public site, so there's nothing to 404 into.
 
 ## Deploying (Cloudflare Workers)
 

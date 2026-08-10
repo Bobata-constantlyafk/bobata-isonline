@@ -13,6 +13,9 @@ export default [
     route("blog", "routes/blog.tsx"),
     route("articles", "routes/articles/index.tsx"),
     route("articles/:slug", "routes/articles/article.tsx"),
+    // A reviewable ranked-list row. Only prerendered for rows that actually
+    // have a review — see react-router.config.ts.
+    route("articles/:slug/:position", "routes/articles/item.tsx"),
     route("contact", "routes/contact.tsx"),
   ]),
   // Deliberately outside SiteLayout — this is an operations tool, not part

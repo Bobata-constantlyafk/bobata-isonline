@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Link, useParams } from "react-router";
-import { getArticle } from "~/lib/articles";
-import { chromeTextStyle } from "~/lib/chromeStyles";
+import { BackButton, Heading, Kicker } from "~/components/articles/SkinChrome";
+import { getArticle, type ListItemFrontmatter } from "~/lib/articles";
 import type { Skin } from "~/lib/skins";
 import type { Route } from "./+types/article";
 
@@ -14,60 +14,109 @@ export function meta({ params }: Route.MetaArgs) {
   ];
 }
 
-function BackButton({ skin, to }: { skin: Skin; to: string }) {
+const HATCH =
+  "repeating-linear-gradient(135deg, #16191c 0 8px, #101315 8px 16px)";
+
+/** Poster-style row thumbnail. Images are pasted links, not uploads — no
+ *  storage is built for this — so absent ones render the same hatch
+ *  placeholder used for Work page image slots, just smaller. */
+function RowThumb({ src, alt }: { src?: string; alt: string }) {
+  if (!src) {
+    return (
+      <div
+        aria-hidden
+        className="h-16 w-11 flex-none border border-hairline"
+        style={{ backgroundImage: HATCH }}
+      />
+    );
+  }
   return (
-    <Link
-      to={to}
-      className="hover-invert self-start px-4 py-[9px] font-mono text-[10px] tracking-[.3em]"
-      style={
-        {
-          "--edge": skin.backBorder,
-          "--accent": skin.accent,
-          "--void": skin.voidTone,
-        } as CSSProperties
-      }
-    >
-      ← BACK
-    </Link>
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      className="h-16 w-11 flex-none border border-hairline object-cover"
+    />
   );
 }
 
-function Kicker({ skin, children }: { skin: Skin; children: ReactNode }) {
-  return (
-    <span
-      className="text-[10px] tracking-[.32em]"
-      style={{ color: skin.muted }}
-    >
-      {children}
-    </span>
-  );
-}
-
-/** Typography and glitch behavior are identical across articles — only the
- *  background/mood layer changes per skin. */
-function Heading({
+/**
+ * One numbered row on a ranked list. Only rows with a `review` are
+ * clickable — presence of the content is the switch, not a separate flag —
+ * marked with an accent left-border, a "REVIEW →" tag, and a link to the
+ * detail page instead of a plain div. Link and div need separate JSX
+ * blocks here rather than a dynamic tag: React Router's LinkProps makes
+ * `to` required, so a component var typed as `Link | "div"` can't accept
+ * conditionally-spread props without losing type safety.
+ */
+function RankedRow({
+  item,
+  index,
   skin,
-  size,
-  children,
+  slug,
 }: {
+  item: ListItemFrontmatter;
+  index: number;
   skin: Skin;
-  size: number;
-  children: ReactNode;
+  slug: string;
 }) {
+  const hasReview = Boolean(item.review);
+  const className = "hover-tint flex items-center gap-7 border-t border-l-2 px-1 py-4";
+  const style = {
+    borderTopColor: skin.rowHairline,
+    borderLeftColor: hasReview ? skin.accent : "transparent",
+    "--tint": skin.rowHover,
+  } as CSSProperties;
+
+  const content = (
+    <>
+      <span
+        className="w-[60px] flex-none font-bitmap text-[26px]"
+        style={{ color: skin.accent }}
+      >
+        {String(index + 1).padStart(2, "0")}
+      </span>
+      <RowThumb src={item.imageUrl} alt={item.title} />
+      {/* Title and metadata share a line on desktop. Real entries carry
+          long titles and full director names, which together outgrow
+          narrow viewports — below the rail breakpoint they stack instead,
+          so nothing wraps mid-title or overflows. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-2 rail:flex-row rail:items-baseline rail:gap-7">
+        <span
+          className="min-w-0 flex-1 font-display text-[20px]"
+          style={{ color: skin.h1Color }}
+        >
+          {item.title}
+        </span>
+        <span
+          className="text-[11px] tracking-[.2em] rail:whitespace-nowrap"
+          style={{ color: skin.muted }}
+        >
+          {item.meta}
+        </span>
+      </div>
+      {hasReview && (
+        <span
+          className="flex-none text-[10px] tracking-[.2em]"
+          style={{ color: skin.accent }}
+        >
+          REVIEW →
+        </span>
+      )}
+    </>
+  );
+
+  if (hasReview) {
+    return (
+      <Link to={`/articles/${slug}/${index + 1}`} className={className} style={style}>
+        {content}
+      </Link>
+    );
+  }
   return (
-    <h1
-      className={skin.h1Split ? "hover-split m-0 font-display" : "m-0 font-display"}
-      style={
-        {
-          fontSize: size,
-          lineHeight: size === 48 ? 1.2 : 1.25,
-          ...(skin.h1Chrome ? chromeTextStyle : { color: skin.h1Color }),
-          "--split": skin.h1Split,
-        } as CSSProperties
-      }
-    >
-      {children}
-    </h1>
+    <div className={className} style={style}>
+      {content}
+    </div>
   );
 }
 
@@ -134,41 +183,13 @@ export default function Article() {
           </div>
           <div className="flex flex-col">
             {frontmatter.items?.map((item, i) => (
-              <div
+              <RankedRow
                 key={item.title}
-                className="hover-tint flex items-baseline gap-7 border-t px-1 py-5"
-                style={
-                  {
-                    borderTopColor: skin.rowHairline,
-                    "--tint": skin.rowHover,
-                  } as CSSProperties
-                }
-              >
-                <span
-                  className="w-[60px] flex-none font-bitmap text-[26px]"
-                  style={{ color: skin.accent }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                {/* Title and metadata share a line on desktop. Real entries
-                    carry long titles and full director names, which together
-                    outgrow narrow viewports — below the rail breakpoint they
-                    stack instead, so nothing wraps mid-title or overflows. */}
-                <div className="flex min-w-0 flex-1 flex-col gap-2 rail:flex-row rail:items-baseline rail:gap-7">
-                  <span
-                    className="min-w-0 flex-1 font-display text-[20px]"
-                    style={{ color: skin.h1Color }}
-                  >
-                    {item.title}
-                  </span>
-                  <span
-                    className="text-[11px] tracking-[.2em] rail:whitespace-nowrap"
-                    style={{ color: skin.muted }}
-                  >
-                    {item.meta}
-                  </span>
-                </div>
-              </div>
+                item={item}
+                index={i}
+                skin={skin}
+                slug={article.slug}
+              />
             ))}
           </div>
         </div>

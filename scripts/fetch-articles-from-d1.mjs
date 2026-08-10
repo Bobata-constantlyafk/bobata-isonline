@@ -71,7 +71,12 @@ async function main() {
   const itemsByArticle = new Map();
   for (const item of items) {
     const list = itemsByArticle.get(item.article_id) ?? [];
-    list.push({ title: item.title, meta: item.meta });
+    const entry = { title: item.title, meta: item.meta };
+    // Omitted entirely rather than written as null — keeps the frontmatter
+    // clean for the (currently most) items that have neither.
+    if (item.image_url) entry.imageUrl = item.image_url;
+    if (item.review) entry.review = item.review;
+    list.push(entry);
     itemsByArticle.set(item.article_id, list);
   }
 

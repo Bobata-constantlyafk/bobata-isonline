@@ -91,11 +91,27 @@ export async function handleGetArticle(
 
   if (row.type === "list") {
     const { results } = await env.DB.prepare(
-      "SELECT title, meta FROM article_items WHERE article_id = ? ORDER BY position",
+      "SELECT title, meta, image_url, review FROM article_items WHERE article_id = ? ORDER BY position",
     )
       .bind(row.id)
-      .all<{ title: string; meta: string }>();
-    return json({ ok: true, article: { ...toApiShape(row), items: results } });
+      .all<{
+        title: string;
+        meta: string;
+        image_url: string | null;
+        review: string | null;
+      }>();
+    return json({
+      ok: true,
+      article: {
+        ...toApiShape(row),
+        items: results.map((r) => ({
+          title: r.title,
+          meta: r.meta,
+          imageUrl: r.image_url,
+          review: r.review,
+        })),
+      },
+    });
   }
 
   return json({ ok: true, article: toApiShape(row) });

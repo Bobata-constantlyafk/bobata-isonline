@@ -3,6 +3,8 @@ import { useState, type FormEvent } from "react";
 export interface ListItem {
   title: string;
   meta: string;
+  imageUrl?: string;
+  review?: string;
 }
 
 const inputClass =
@@ -12,6 +14,11 @@ const inputClass =
  * The nine TITLE_01..09 slots of a ranked-list article. Always exactly
  * nine rows — the row count isn't editable, only their content — matching
  * the design's fixed "the Nines" format.
+ *
+ * Image URL and review are collapsed by default per row (expanded only if
+ * either already has a value) — most rows won't have one yet, and showing
+ * all four fields for all nine rows up front makes the form much longer
+ * than it needs to be for the common case.
  */
 export function ListItemsForm({
   initial,
@@ -25,11 +32,18 @@ export function ListItemsForm({
   error: string | null;
 }) {
   const [items, setItems] = useState(initial);
+  const [expanded, setExpanded] = useState(() =>
+    initial.map((item) => Boolean(item.imageUrl || item.review)),
+  );
 
   function setItem(index: number, field: keyof ListItem, value: string) {
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     );
+  }
+
+  function toggleExpanded(index: number) {
+    setExpanded((prev) => prev.map((v, i) => (i === index ? !v : v)));
   }
 
   function handleSubmit(e: FormEvent) {
@@ -39,28 +53,68 @@ export function ListItemsForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex max-w-2xl flex-col gap-5">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         {items.map((item, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <span className="w-8 flex-none font-bitmap text-[15px] text-acid-cyan">
-              {String(i + 1).padStart(2, "0")}
-            </span>
-            <input
-              className={`${inputClass} flex-[2]`}
-              value={item.title}
-              onChange={(e) => setItem(i, "title", e.target.value)}
-              placeholder={`TITLE_0${i + 1}`}
-              maxLength={120}
-              required
-            />
-            <input
-              className={`${inputClass} flex-1`}
-              value={item.meta}
-              onChange={(e) => setItem(i, "meta", e.target.value)}
-              placeholder="YEAR · CREDIT"
-              maxLength={60}
-              required
-            />
+          <div key={i} className="flex flex-col gap-2 border-b border-hairline pb-4">
+            <div className="flex items-center gap-3">
+              <span className="w-8 flex-none font-bitmap text-[15px] text-acid-cyan">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <input
+                className={`${inputClass} flex-[2]`}
+                value={item.title}
+                onChange={(e) => setItem(i, "title", e.target.value)}
+                placeholder={`TITLE_0${i + 1}`}
+                maxLength={120}
+                required
+              />
+              <input
+                className={`${inputClass} flex-1`}
+                value={item.meta}
+                onChange={(e) => setItem(i, "meta", e.target.value)}
+                placeholder="YEAR · CREDIT"
+                maxLength={60}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => toggleExpanded(i)}
+                className="flex-none text-[10px] tracking-[.15em] text-secondary hover:text-acid-cyan"
+              >
+                {expanded[i] ? "− HIDE" : "+ IMAGE & REVIEW"}
+              </button>
+            </div>
+
+            {expanded[i] && (
+              <div className="ml-11 flex flex-col gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[9px] tracking-[.2em] text-dim">
+                    IMAGE URL — pasted link, must start with https://
+                  </span>
+                  <input
+                    className={inputClass}
+                    value={item.imageUrl ?? ""}
+                    onChange={(e) => setItem(i, "imageUrl", e.target.value)}
+                    placeholder="https://…"
+                    maxLength={500}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[9px] tracking-[.2em] text-dim">
+                    REVIEW — leave blank to keep this row non-clickable on
+                    the public page. Blank line = new paragraph, "&gt; text"
+                    = pull quote.
+                  </span>
+                  <textarea
+                    className={`${inputClass} resize-y`}
+                    rows={4}
+                    value={item.review ?? ""}
+                    onChange={(e) => setItem(i, "review", e.target.value)}
+                    maxLength={4000}
+                  />
+                </label>
+              </div>
+            )}
           </div>
         ))}
       </div>
