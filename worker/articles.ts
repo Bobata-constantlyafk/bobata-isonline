@@ -71,7 +71,9 @@ export async function handleListArticles(
   return json({ ok: true, articles: results.map(toApiShape) });
 }
 
-/** GET /api/admin/articles/:slug */
+/** GET /api/admin/articles/:slug — list-type rows also carry their nine
+ *  items, so this one endpoint serves both the essay editor and (read-only)
+ *  the Nines editor's initial load. */
 export async function handleGetArticle(
   request: Request,
   env: ArticlesEnv,
@@ -86,6 +88,16 @@ export async function handleGetArticle(
     .bind(slug)
     .first<ArticleRow>();
   if (!row) return json({ ok: false, error: "NOT FOUND" }, 404);
+
+  if (row.type === "list") {
+    const { results } = await env.DB.prepare(
+      "SELECT title, meta FROM article_items WHERE article_id = ? ORDER BY position",
+    )
+      .bind(row.id)
+      .all<{ title: string; meta: string }>();
+    return json({ ok: true, article: { ...toApiShape(row), items: results } });
+  }
+
   return json({ ok: true, article: toApiShape(row) });
 }
 

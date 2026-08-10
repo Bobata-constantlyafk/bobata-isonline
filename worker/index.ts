@@ -8,6 +8,7 @@ import {
   type ArticlesEnv,
 } from "./articles";
 import { handleContact, type ContactEnv } from "./contact";
+import { handleUpdateListItems, type ListsEnv } from "./lists";
 import {
   handleDeleteMessage,
   handleListMessages,
@@ -34,7 +35,8 @@ export interface Env
     VisitorsEnv,
     AdminEnv,
     MessagesEnv,
-    ArticlesEnv {
+    ArticlesEnv,
+    ListsEnv {
   ASSETS: Fetcher;
 }
 
@@ -122,6 +124,18 @@ export default {
       return new Response("Method Not Allowed", {
         status: 405,
         headers: { allow: "GET, PATCH, DELETE" },
+      });
+    }
+
+    const listMatch = url.pathname.match(/^\/api\/admin\/lists\/([^/]+)$/);
+    if (listMatch) {
+      const [, slug] = listMatch;
+      if (request.method === "PATCH") {
+        return handleUpdateListItems(request, env, slug);
+      }
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "PATCH" },
       });
     }
 

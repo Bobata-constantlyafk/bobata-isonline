@@ -76,23 +76,19 @@ export default function AdminArticles() {
               )}
             </div>
             <div className="flex gap-4 text-[11px] tracking-[.15em]">
-              {a.type === "essay" ? (
-                <>
-                  <Link
-                    to={`/admin/articles/${a.slug}`}
-                    className="text-secondary hover:text-acid-cyan"
-                  >
-                    EDIT
-                  </Link>
-                  <button
-                    onClick={() => remove(a.slug, a.title)}
-                    className="text-acid-magenta hover:text-bright"
-                  >
-                    DELETE
-                  </button>
-                </>
-              ) : (
-                <span className="text-dim">NINES EDITOR — coming next</span>
+              <Link
+                to={`/admin/articles/${a.slug}`}
+                className="text-secondary hover:text-acid-cyan"
+              >
+                {a.type === "list" ? "EDIT THE NINES" : "EDIT"}
+              </Link>
+              {a.type === "essay" && (
+                <button
+                  onClick={() => remove(a.slug, a.title)}
+                  className="text-acid-magenta hover:text-bright"
+                >
+                  DELETE
+                </button>
               )}
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArticleForm, type ArticleFormValues } from "~/components/admin/ArticleForm";
+import { ListItemsForm, type ListItem } from "~/components/admin/ListItemsForm";
 import type { Route } from "./+types/articles.edit";
 
 export function meta({ params }: Route.MetaArgs) {
@@ -9,6 +10,7 @@ export function meta({ params }: Route.MetaArgs) {
 
 interface FetchedArticle extends ArticleFormValues {
   type: "list" | "essay";
+  items?: ListItem[];
 }
 
 export default function EditArticle() {
@@ -26,7 +28,7 @@ export default function EditArticle() {
       .catch(() => setLoadError("Could not load this article."));
   }, [slug]);
 
-  async function handleSubmit(values: ArticleFormValues) {
+  async function handleSubmitEssay(values: ArticleFormValues) {
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -44,13 +46,40 @@ export default function EditArticle() {
     }
   }
 
+  async function handleSubmitList(items: ListItem[]) {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch(`/api/admin/lists/${slug}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Save failed.");
+      navigate("/admin/articles");
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : "Save failed.");
+      setSubmitting(false);
+    }
+  }
+
   if (loadError) return <p className="text-sm text-acid-magenta">{loadError}</p>;
   if (!article) return <p className="text-sm text-secondary">Loading…</p>;
-  if (article.type !== "essay") {
+
+  if (article.type === "list") {
     return (
-      <p className="text-sm text-secondary">
-        This is a ranked list — its editor isn't built yet.
-      </p>
+      <div className="flex flex-col gap-6">
+        <h1 className="font-display text-lg text-bright">
+          EDIT THE NINES — {article.title}
+        </h1>
+        <ListItemsForm
+          initial={article.items ?? []}
+          onSubmit={handleSubmitList}
+          submitting={submitting}
+          error={submitError}
+        />
+      </div>
     );
   }
 
@@ -62,7 +91,7 @@ export default function EditArticle() {
       <ArticleForm
         mode="edit"
         initial={article}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmitEssay}
         submitting={submitting}
         error={submitError}
       />
