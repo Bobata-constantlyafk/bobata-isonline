@@ -23,10 +23,13 @@ export default {
     "/blog",
     "/articles",
     "/contact",
-    // Static shell only — gated by Cloudflare Access at the edge, not by
-    // anything in this file. Its content fetches from /api/admin/* after
-    // mount, so prerendering it is safe: there's no admin data baked in.
+    // Static shells only — gated by Cloudflare Access at the edge, not by
+    // anything in this file. Their content fetches from /api/admin/* after
+    // mount, so prerendering them is safe: there's no admin data baked in.
     "/admin",
+    "/admin/inbox",
+    "/admin/articles",
+    "/admin/diary",
     ...articleSlugs.map((slug) => `/articles/${slug}`),
   ],
 } satisfies Config;

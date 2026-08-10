@@ -1,5 +1,11 @@
 import { handleWhoami, type AdminEnv } from "./admin";
 import { handleContact, type ContactEnv } from "./contact";
+import {
+  handleDeleteMessage,
+  handleListMessages,
+  handleUpdateMessage,
+  type MessagesEnv,
+} from "./messages";
 import { handleVisitors, type VisitorsEnv } from "./visitors";
 
 /**
@@ -15,7 +21,11 @@ import { handleVisitors, type VisitorsEnv } from "./visitors";
  * That convention is Pages-only and is silently ignored by a Worker, which
  * is why /api/contact 404'd on the first deploy.
  */
-export interface Env extends ContactEnv, VisitorsEnv, AdminEnv {
+export interface Env
+  extends ContactEnv,
+    VisitorsEnv,
+    AdminEnv,
+    MessagesEnv {
   ASSETS: Fetcher;
 }
 
@@ -54,6 +64,33 @@ export default {
         });
       }
       return handleWhoami(request, env);
+    }
+
+    if (url.pathname === "/api/admin/messages") {
+      if (request.method !== "GET") {
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: { allow: "GET" },
+        });
+      }
+      return handleListMessages(request, env);
+    }
+
+    const messageMatch = url.pathname.match(
+      /^\/api\/admin\/messages\/([^/]+)$/,
+    );
+    if (messageMatch) {
+      const [, id] = messageMatch;
+      if (request.method === "PATCH") {
+        return handleUpdateMessage(request, env, id);
+      }
+      if (request.method === "DELETE") {
+        return handleDeleteMessage(request, env, id);
+      }
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "PATCH, DELETE" },
+      });
     }
 
     return env.ASSETS.fetch(request);
