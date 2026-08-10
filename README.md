@@ -50,11 +50,40 @@ npx wrangler d1 migrations apply bobata-db --remote  # live site
 |---|---|
 | `messages` | Contact form submissions. `read`/`archived` are flags an admin toggles — nothing is deleted on view. |
 | `counters` | Named single-row counters (`visitors` today), so a new counter is an `INSERT`, not a migration. |
+| `articles` | Every article/ranked-list — see "Articles live in D1" below. |
+| `article_items` | The nine rows of a ranked-list article, FK'd to `articles`. |
 
 | Endpoint | Reads/writes |
 |---|---|
 | `POST /api/contact` | Inserts into `messages`. Server-validated; a honeypot field silently no-ops. |
 | `GET /api/visitors` | Reads `counters`, incrementing first unless the request carries a `bobata_visited` session cookie (no Max-Age — cleared when the browser closes, so the next visit counts again). |
+| `GET/PATCH/DELETE /api/admin/messages(/:id)` | Admin inbox. Every handler re-verifies the Access JWT itself (`worker/access.ts`). |
+
+### Articles live in D1, not just as files
+
+`app/content/articles/*.mdx` still exists and is still what Vite's MDX plugin
+compiles — but those files are now *generated*, not hand-written. The real
+source of truth is the `articles`/`article_items` tables.
+
+`scripts/fetch-articles-from-d1.mjs` runs as an npm `prebuild` step, before
+every `npm run build`. It queries D1 over Cloudflare's REST API (there's no
+Worker binding available on the build machine — bindings only exist inside a
+deployed Worker) and rewrites the `.mdx` files to match, deleting any that
+no longer correspond to a published row.
+
+It requires `CF_D1_API_TOKEN` — **only on the machine actually building for
+deploy.** If it's unset (any normal local `npm run build`), the script logs
+that it's skipping and leaves whatever `.mdx` files are already on disk
+untouched. Only Cloudflare's own build step needs the token, and it needs it
+as a **build-time** variable, which on this project's dashboard is a separate
+settings section from the Worker's runtime Variables and Secrets used
+everywhere else in this README — look for something like "Build
+configuration" / "Build variables", not "Variables and Secrets".
+
+Create the token at My Profile → API Tokens → Create Custom Token, scoped to
+your account, permission **Account → D1 → Read**. `scripts/generate-seed-sql.mjs`
+is the one-time tool that produced `migrations/0003_seed_articles.sql` from
+the original hand-written files; it's not part of any ongoing process.
 
 ## Deploying (Cloudflare Workers)
 
