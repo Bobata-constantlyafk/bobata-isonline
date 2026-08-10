@@ -27,6 +27,11 @@ export default [
     route("admin", "routes/admin/index.tsx"),
     route("admin/inbox", "routes/admin/inbox.tsx"),
     route("admin/articles", "routes/admin/articles.tsx"),
+    route("admin/articles/new", "routes/admin/articles.new.tsx"),
+    // Dynamic — any existing/future slug. Not prerendered per-value; React
+    // Router ranks the static "new" route above this regardless of
+    // registration order, so there's no ambiguity between the two.
+    route("admin/articles/:slug", "routes/admin/articles.edit.tsx"),
     route("admin/diary", "routes/admin/diary.tsx"),
   ]),
 ] satisfies RouteConfig;

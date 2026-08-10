@@ -58,6 +58,7 @@ npx wrangler d1 migrations apply bobata-db --remote  # live site
 | `POST /api/contact` | Inserts into `messages`. Server-validated; a honeypot field silently no-ops. |
 | `GET /api/visitors` | Reads `counters`, incrementing first unless the request carries a `bobata_visited` session cookie (no Max-Age — cleared when the browser closes, so the next visit counts again). |
 | `GET/PATCH/DELETE /api/admin/messages(/:id)` | Admin inbox. Every handler re-verifies the Access JWT itself (`worker/access.ts`). |
+| `GET/POST /api/admin/articles`, `GET/PATCH/DELETE /api/admin/articles/:slug` | Essay CRUD. Creating always makes `type='essay'`; PATCH/DELETE reject rows where `type='list'` — the ranked-list (Nines) editor is a separate, not-yet-built piece, so this guards against corrupting one with the wrong shape of form. |
 
 ### Articles live in D1, not just as files
 

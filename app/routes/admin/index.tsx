@@ -16,7 +16,7 @@ const TILES = [
     label: "ARTICLES",
     to: "/admin/articles",
     desc: "Write and publish.",
-    enabled: false,
+    enabled: true,
   },
   {
     label: "DIARY",

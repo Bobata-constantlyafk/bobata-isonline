@@ -1,4 +1,12 @@
 import { handleWhoami, type AdminEnv } from "./admin";
+import {
+  handleCreateArticle,
+  handleDeleteArticle,
+  handleGetArticle,
+  handleListArticles,
+  handleUpdateArticle,
+  type ArticlesEnv,
+} from "./articles";
 import { handleContact, type ContactEnv } from "./contact";
 import {
   handleDeleteMessage,
@@ -25,7 +33,8 @@ export interface Env
   extends ContactEnv,
     VisitorsEnv,
     AdminEnv,
-    MessagesEnv {
+    MessagesEnv,
+    ArticlesEnv {
   ASSETS: Fetcher;
 }
 
@@ -90,6 +99,51 @@ export default {
       return new Response("Method Not Allowed", {
         status: 405,
         headers: { allow: "PATCH, DELETE" },
+      });
+    }
+
+    if (url.pathname === "/api/admin/articles") {
+      if (request.method === "GET") return handleListArticles(request, env);
+      if (request.method === "POST") return handleCreateArticle(request, env);
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "GET, POST" },
+      });
+    }
+
+    const articleMatch = url.pathname.match(
+      /^\/api\/admin\/articles\/([^/]+)$/,
+    );
+    if (articleMatch) {
+      const [, slug] = articleMatch;
+      if (request.method === "GET") return handleGetArticle(request, env, slug);
+      if (request.method === "PATCH") return handleUpdateArticle(request, env, slug);
+      if (request.method === "DELETE") return handleDeleteArticle(request, env, slug);
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "GET, PATCH, DELETE" },
+      });
+    }
+
+    // /admin/articles/:slug (the edit page) is genuinely dynamic — any
+    // existing or future slug — so unlike the rest of the site it can't be
+    // prerendered per-value. If the exact path isn't a known static file,
+    // serve the admin shell instead and let client-side routing take over
+    // once it hydrates and reads the real browser URL. Scoped to /admin/*
+    // only: the public site keeps real 404s for paths that don't exist.
+    if (url.pathname.startsWith("/admin/")) {
+      const assetRes = await env.ASSETS.fetch(request);
+      if (assetRes.status !== 404) return assetRes;
+      // Trailing slash matters: fetching "/admin" (no slash) gets the
+      // asset binding's own redirect to "/admin/" instead of the page,
+      // which produced a 200 with an empty body and a stale Location
+      // header when blindly re-wrapped below.
+      const shellRes = await env.ASSETS.fetch(
+        new Request(new URL("/admin/", url), request),
+      );
+      return new Response(shellRes.body, {
+        status: 200,
+        headers: shellRes.headers,
       });
     }
 

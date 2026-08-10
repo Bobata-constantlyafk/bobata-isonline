@@ -29,7 +29,10 @@ export default {
     "/admin",
     "/admin/inbox",
     "/admin/articles",
+    "/admin/articles/new",
     "/admin/diary",
+    // /admin/articles/:slug (edit) is genuinely dynamic and NOT prerendered
+    // per-slug — see the /admin/* fallback in worker/index.ts.
     ...articleSlugs.map((slug) => `/articles/${slug}`),
   ],
 } satisfies Config;
