@@ -85,6 +85,17 @@ with `wrangler secret put <NAME>`.
 inside every Access JWT's own `aud` claim, so exposing it grants nothing. Set
 them as **Plaintext**, not Secret.
 
+### Who can sign in to /admin
+
+The Access Application's identity provider is **"Sign in with Cloudflare
+account"**, not One-Time PIN. That means `/admin` only accepts Cloudflare
+account members — the app's policy also lists `bobodech21@gmail.com` and
+`boyandechevaz@gmail.com` under Include → Emails, but neither can actually
+sign in, since the account-membership check happens before that policy is
+ever evaluated. This is deliberate (chosen over email-OTP for anyone), not
+a bug — if it ever needs to change, switch the Application's Authentication
+tab to include One-Time PIN.
+
 The contact form's one hard requirement is the `DB` binding (wired in
 `wrangler.jsonc`, not a secret) — a submission is saved there regardless of
 whether the three Resend variables above are set. If they're absent, the
