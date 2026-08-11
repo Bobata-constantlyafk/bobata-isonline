@@ -54,5 +54,7 @@
 
   // Secrets are NOT set here — they would end up in git. Set them with
   // `wrangler secret put RESEND_API_KEY` or in the Worker's dashboard
-  // settings: RESEND_API_KEY, CONTACT_TO, CONTACT_FROM.
+  // settings: RESEND_API_KEY, CONTACT_TO, CONTACT_FROM, GITHUB_DISPATCH_TOKEN
+  // (see worker/rebuild.ts — a fine-grained GitHub PAT scoped to this repo's
+  // Actions: write permission only, used to trigger publish-rebuild.yml).
 }

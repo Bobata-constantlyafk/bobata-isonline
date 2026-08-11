@@ -118,8 +118,8 @@ export function ListItemsForm({
       </div>
 
       <p className="text-[11px] text-dim">
-        Saves to the database immediately. It won't appear on the live site
-        until the next deploy.
+        Saves to the database immediately and kicks off a rebuild — it
+        usually appears on the live site within a couple of minutes.
       </p>
 
       {error && <p className="text-[12px] text-acid-magenta">{error}</p>}

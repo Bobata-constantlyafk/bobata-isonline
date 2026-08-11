@@ -15,6 +15,7 @@ import {
   handleUpdateMessage,
   type MessagesEnv,
 } from "./messages";
+import { triggerRebuild, type RebuildEnv } from "./rebuild";
 import { handleUpload, type UploadEnv } from "./upload";
 import { handleVisitors, type VisitorsEnv } from "./visitors";
 
@@ -38,141 +39,171 @@ export interface Env
     MessagesEnv,
     ArticlesEnv,
     ListsEnv,
-    UploadEnv {
+    UploadEnv,
+    RebuildEnv {
   ASSETS: Fetcher;
 }
 
+// Content-mutating admin routes that should trigger a rebuild once they
+// succeed — see worker/rebuild.ts. Read-only admin routes (GET) and
+// unrelated ones (contact, visitors, upload, messages) are left alone:
+// uploading an image doesn't change what a build renders on its own, and
+// messages/visitors never feed the prerendered site at all.
+function mutatesPublishedContent(pathname: string, method: string): boolean {
+  if (method === "GET") return false;
+  return (
+    pathname === "/api/admin/articles" ||
+    /^\/api\/admin\/articles\/[^/]+$/.test(pathname) ||
+    /^\/api\/admin\/lists\/[^/]+$/.test(pathname)
+  );
+}
+
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname === "/api/contact") {
-      if (request.method !== "POST") {
-        return new Response("Method Not Allowed", {
-          status: 405,
-          headers: { allow: "POST" },
-        });
-      }
-      return handleContact(request, env);
+    if (mutatesPublishedContent(url.pathname, request.method)) {
+      const response = await handleApiRoute(request, env, url);
+      if (response.ok) ctx.waitUntil(triggerRebuild(env));
+      return response;
     }
 
-    if (url.pathname === "/api/visitors") {
-      if (request.method !== "GET") {
-        return new Response("Method Not Allowed", {
-          status: 405,
-          headers: { allow: "GET" },
-        });
-      }
-      return handleVisitors(request, env);
-    }
-
-    // Every /api/admin/* route re-verifies the Access JWT itself (see
-    // worker/access.ts) — the edge-level Access policy on /admin* is the
-    // primary gate, this is defense-in-depth, not a substitute for it.
-    if (url.pathname === "/api/admin/whoami") {
-      if (request.method !== "GET") {
-        return new Response("Method Not Allowed", {
-          status: 405,
-          headers: { allow: "GET" },
-        });
-      }
-      return handleWhoami(request, env);
-    }
-
-    if (url.pathname === "/api/admin/messages") {
-      if (request.method !== "GET") {
-        return new Response("Method Not Allowed", {
-          status: 405,
-          headers: { allow: "GET" },
-        });
-      }
-      return handleListMessages(request, env);
-    }
-
-    const messageMatch = url.pathname.match(
-      /^\/api\/admin\/messages\/([^/]+)$/,
-    );
-    if (messageMatch) {
-      const [, id] = messageMatch;
-      if (request.method === "PATCH") {
-        return handleUpdateMessage(request, env, id);
-      }
-      if (request.method === "DELETE") {
-        return handleDeleteMessage(request, env, id);
-      }
-      return new Response("Method Not Allowed", {
-        status: 405,
-        headers: { allow: "PATCH, DELETE" },
-      });
-    }
-
-    if (url.pathname === "/api/admin/articles") {
-      if (request.method === "GET") return handleListArticles(request, env);
-      if (request.method === "POST") return handleCreateArticle(request, env);
-      return new Response("Method Not Allowed", {
-        status: 405,
-        headers: { allow: "GET, POST" },
-      });
-    }
-
-    const articleMatch = url.pathname.match(
-      /^\/api\/admin\/articles\/([^/]+)$/,
-    );
-    if (articleMatch) {
-      const [, slug] = articleMatch;
-      if (request.method === "GET") return handleGetArticle(request, env, slug);
-      if (request.method === "PATCH") return handleUpdateArticle(request, env, slug);
-      if (request.method === "DELETE") return handleDeleteArticle(request, env, slug);
-      return new Response("Method Not Allowed", {
-        status: 405,
-        headers: { allow: "GET, PATCH, DELETE" },
-      });
-    }
-
-    const listMatch = url.pathname.match(/^\/api\/admin\/lists\/([^/]+)$/);
-    if (listMatch) {
-      const [, slug] = listMatch;
-      if (request.method === "PATCH") {
-        return handleUpdateListItems(request, env, slug);
-      }
-      return new Response("Method Not Allowed", {
-        status: 405,
-        headers: { allow: "PATCH" },
-      });
-    }
-
-    if (url.pathname === "/api/admin/upload") {
-      if (request.method !== "POST") {
-        return new Response("Method Not Allowed", {
-          status: 405,
-          headers: { allow: "POST" },
-        });
-      }
-      return handleUpload(request, env);
-    }
-
-    // /admin/articles/:slug (the edit page) is genuinely dynamic — any
-    // existing or future slug — so unlike the rest of the site it can't be
-    // prerendered per-value. If the exact path isn't a known static file,
-    // serve the admin shell instead and let client-side routing take over
-    // once it hydrates and reads the real browser URL. Scoped to /admin/*
-    // only: the public site keeps real 404s for paths that don't exist.
-    if (url.pathname.startsWith("/admin/")) {
-      const assetRes = await env.ASSETS.fetch(request);
-      if (assetRes.status !== 404) return assetRes;
-      // Trailing slash matters: fetching "/admin" (no slash) gets the
-      // asset binding's own redirect to "/admin/" instead of the page,
-      // which produced a 200 with an empty body and a stale Location
-      // header when blindly re-wrapped below.
-      const shellRes = await env.ASSETS.fetch(
-        new Request(new URL("/admin/", url), request),
-      );
-      return new Response(shellRes.body, {
-        status: 200,
-        headers: shellRes.headers,
-      });
-    }
-
-    return env.ASSETS.fetch(request);
+    return handleApiRoute(request, env, url);
   },
 } satisfies ExportedHandler<Env>;
+
+async function handleApiRoute(
+  request: Request,
+  env: Env,
+  url: URL,
+): Promise<Response> {
+
+  if (url.pathname === "/api/contact") {
+    if (request.method !== "POST") {
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "POST" },
+      });
+    }
+    return handleContact(request, env);
+  }
+
+  if (url.pathname === "/api/visitors") {
+    if (request.method !== "GET") {
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "GET" },
+      });
+    }
+    return handleVisitors(request, env);
+  }
+
+  // Every /api/admin/* route re-verifies the Access JWT itself (see
+  // worker/access.ts) — the edge-level Access policy on /admin* is the
+  // primary gate, this is defense-in-depth, not a substitute for it.
+  if (url.pathname === "/api/admin/whoami") {
+    if (request.method !== "GET") {
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "GET" },
+      });
+    }
+    return handleWhoami(request, env);
+  }
+
+  if (url.pathname === "/api/admin/messages") {
+    if (request.method !== "GET") {
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "GET" },
+      });
+    }
+    return handleListMessages(request, env);
+  }
+
+  const messageMatch = url.pathname.match(
+    /^\/api\/admin\/messages\/([^/]+)$/,
+  );
+  if (messageMatch) {
+    const [, id] = messageMatch;
+    if (request.method === "PATCH") {
+      return handleUpdateMessage(request, env, id);
+    }
+    if (request.method === "DELETE") {
+      return handleDeleteMessage(request, env, id);
+    }
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: { allow: "PATCH, DELETE" },
+    });
+  }
+
+  if (url.pathname === "/api/admin/articles") {
+    if (request.method === "GET") return handleListArticles(request, env);
+    if (request.method === "POST") return handleCreateArticle(request, env);
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: { allow: "GET, POST" },
+    });
+  }
+
+  const articleMatch = url.pathname.match(
+    /^\/api\/admin\/articles\/([^/]+)$/,
+  );
+  if (articleMatch) {
+    const [, slug] = articleMatch;
+    if (request.method === "GET") return handleGetArticle(request, env, slug);
+    if (request.method === "PATCH") return handleUpdateArticle(request, env, slug);
+    if (request.method === "DELETE") return handleDeleteArticle(request, env, slug);
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: { allow: "GET, PATCH, DELETE" },
+    });
+  }
+
+  const listMatch = url.pathname.match(/^\/api\/admin\/lists\/([^/]+)$/);
+  if (listMatch) {
+    const [, slug] = listMatch;
+    if (request.method === "PATCH") {
+      return handleUpdateListItems(request, env, slug);
+    }
+    return new Response("Method Not Allowed", {
+      status: 405,
+      headers: { allow: "PATCH" },
+    });
+  }
+
+  if (url.pathname === "/api/admin/upload") {
+    if (request.method !== "POST") {
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: { allow: "POST" },
+      });
+    }
+    return handleUpload(request, env);
+  }
+
+  // /admin/articles/:slug (the edit page) is genuinely dynamic — any
+  // existing or future slug — so unlike the rest of the site it can't be
+  // prerendered per-value. If the exact path isn't a known static file,
+  // serve the admin shell instead and let client-side routing take over
+  // once it hydrates and reads the real browser URL. Scoped to /admin/*
+  // only: the public site keeps real 404s for paths that don't exist.
+  if (url.pathname.startsWith("/admin/")) {
+    const assetRes = await env.ASSETS.fetch(request);
+    if (assetRes.status !== 404) return assetRes;
+    // Trailing slash matters: fetching "/admin" (no slash) gets the
+    // asset binding's own redirect to "/admin/" instead of the page,
+    // which produced a 200 with an empty body and a stale Location
+    // header when blindly re-wrapped below.
+    const shellRes = await env.ASSETS.fetch(
+      new Request(new URL("/admin/", url), request),
+    );
+    return new Response(shellRes.body, {
+      status: 200,
+      headers: shellRes.headers,
+    });
+  }
+
+  return env.ASSETS.fetch(request);
+  }
