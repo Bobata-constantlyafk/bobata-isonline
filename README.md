@@ -2,8 +2,6 @@
 Welcome back, wanderer. 
 
 
-
-S
 ## Local development
 
 ```bash
