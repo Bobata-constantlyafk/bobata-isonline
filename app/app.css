@@ -152,11 +152,14 @@ a:hover {
 }
 
 /* Same reusable move as page-px, for grids: below `sm` a broken/asymmetric
-   column grid (see work.tsx) has tracks too narrow for real content — some
-   tiles only span 3 of 12 columns. Rather than rewrite each grid's per-tile
-   column/row spans for phone, this single rule stacks every direct child
-   full-width and lets rows size to content. Desktop (sm and up) is
-   completely untouched — add the class to any future broken grid. */
+   column grid (see work.tsx, about.tsx) has tracks too narrow for real
+   content — some tiles only span 3 of 12 columns, and the composition
+   leans on per-tile marginTop offsets that only make sense next to
+   neighbors that no longer exist once stacked. Rather than rewrite each
+   grid's per-tile column/row/margin for phone, this single rule stacks
+   every direct child full-width, resets the offset, and lets rows size to
+   content. Desktop (sm and up) is completely untouched — add the class to
+   any future broken grid. */
 @media (max-width: 639px) {
   .tile-grid {
     grid-template-columns: 1fr !important;
@@ -164,6 +167,7 @@ a:hover {
   .tile-grid > * {
     grid-column: 1 / -1 !important;
     grid-row: auto !important;
+    margin-top: 0 !important;
   }
 }
 

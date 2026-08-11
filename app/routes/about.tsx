@@ -55,7 +55,7 @@ export default function About() {
         kickerColor="#ff00a8"
       />
 
-      <div className="grid grid-cols-12 gap-[22px]">
+      <div className="tile-grid grid grid-cols-12 gap-[22px]">
         {FRAGMENTS.map((fragment) => (
           <div
             key={fragment.label}

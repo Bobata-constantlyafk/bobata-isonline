@@ -20,7 +20,7 @@ export default function Blog() {
         <span className="text-[10px] tracking-[.34em] text-secondary">
           CHANNEL A — THE NINES (RANKED LISTS)
         </span>
-        <div className="grid grid-cols-3 gap-[18px]">
+        <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-3">
           {RANKED_LISTS.map(({ slug, frontmatter, skin }) => (
             <Link
               key={slug}
