@@ -15,6 +15,7 @@ import {
   handleUpdateMessage,
   type MessagesEnv,
 } from "./messages";
+import { handleUpload, type UploadEnv } from "./upload";
 import { handleVisitors, type VisitorsEnv } from "./visitors";
 
 /**
@@ -36,7 +37,8 @@ export interface Env
     AdminEnv,
     MessagesEnv,
     ArticlesEnv,
-    ListsEnv {
+    ListsEnv,
+    UploadEnv {
   ASSETS: Fetcher;
 }
 
@@ -137,6 +139,16 @@ export default {
         status: 405,
         headers: { allow: "PATCH" },
       });
+    }
+
+    if (url.pathname === "/api/admin/upload") {
+      if (request.method !== "POST") {
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: { allow: "POST" },
+        });
+      }
+      return handleUpload(request, env);
     }
 
     // /admin/articles/:slug (the edit page) is genuinely dynamic — any

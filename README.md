@@ -51,7 +51,7 @@ npx wrangler d1 migrations apply bobata-db --remote  # live site
 | `messages` | Contact form submissions. `read`/`archived` are flags an admin toggles — nothing is deleted on view. |
 | `counters` | Named single-row counters (`visitors` today), so a new counter is an `INSERT`, not a migration. |
 | `articles` | Every article/ranked-list — see "Articles live in D1" below. |
-| `article_items` | The nine rows of a ranked-list article, FK'd to `articles`. `image_url` and `review` are both optional — a pasted link and freeform text, not an upload (no image storage is built). `review`'s presence, not a separate flag, is what makes a row clickable on the public page and gives it a detail page at `/articles/:slug/:position`. |
+| `article_items` | The nine rows of a ranked-list article, FK'd to `articles`. `image_url` and `review` are both optional — either a pasted link or an uploaded file (see R2 below), and freeform text. `review`'s presence, not a separate flag, is what makes a row clickable on the public page and gives it a detail page at `/articles/:slug/:position`. |
 
 | Endpoint | Reads/writes |
 |---|---|
@@ -60,6 +60,20 @@ npx wrangler d1 migrations apply bobata-db --remote  # live site
 | `GET/PATCH/DELETE /api/admin/messages(/:id)` | Admin inbox. Every handler re-verifies the Access JWT itself (`worker/access.ts`). |
 | `GET/POST /api/admin/articles`, `GET/PATCH/DELETE /api/admin/articles/:slug` | Article CRUD. Creating always makes `type='essay'` (lists are created via migrations only). PATCH rejects rows where `type='list'` — the Nines editor is a separate endpoint below, so this guards against corrupting one with the wrong shape of form. DELETE works on either type; deleting a list cascades to its nine `article_items` via the FK. `GET .../:slug` also returns `items` (including `imageUrl`/`review`) for list-type rows. |
 | `PATCH /api/admin/lists/:slug` | Replaces all nine `article_items` rows for a ranked-list article in one atomic `env.DB.batch()` (delete-all then reinsert). Rejects `type='essay'` rows the same way the articles endpoint rejects lists. `imageUrl` must start with `https://` if set; both it and `review` are optional. |
+| `POST /api/admin/upload` | Body is raw image bytes (not multipart), `content-type` header says jpg/png/webp/gif. 8MB max. Writes to R2 under a random UUID key (never the original filename) and returns the public `r2.dev` URL. |
+
+### Images live in R2
+
+Bucket `bobata-media`, bound as `env.MEDIA`, public reads via its `r2.dev`
+URL (`R2_PUBLIC_URL` in `wrangler.jsonc` — not secret, it's already a public
+read endpoint). Free tier: 10GB storage, 1M writes/month, 10M reads/month,
+and **zero egress cost at any volume** — the one thing that actually matters
+for a bucket whose whole job is serving images to site visitors, and the
+reason R2 over S3/most alternatives.
+
+The admin Nines editor's image field still accepts a pasted URL — external
+links have legitimate uses — but defaults to the upload path: pick a file,
+it lands in R2 immediately, the URL field fills itself in.
 
 ### Articles live in D1, not just as files
 

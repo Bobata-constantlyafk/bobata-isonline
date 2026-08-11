@@ -22,7 +22,11 @@
   // just a URL. Safe to commit.
   "vars": {
     "ACCESS_TEAM_DOMAIN": "misty-dream-75cd.cloudflareaccess.com",
-    "ACCESS_AUD": "50ffacc4d5ad1a91e0f00c0756f7e76e824ffe6042a6b6fbd5ef2e8990663e74"
+    "ACCESS_AUD": "50ffacc4d5ad1a91e0f00c0756f7e76e824ffe6042a6b6fbd5ef2e8990663e74",
+    // Not secret — it's the public read URL of a public bucket, already
+    // reachable by anyone with an object key. Swap to a path on the real
+    // domain once one is bought (task #21); nothing else needs to change.
+    "R2_PUBLIC_URL": "https://pub-2496318461cb4c5398c7ac0c4b19bc88.r2.dev"
   },
 
   // Cloudflare's own SQLite, bound directly into the Worker — no
@@ -35,6 +39,16 @@
       "database_name": "bobata-db",
       "database_id": "7193bfed-b884-4e80-bdbb-8c6aa30bead3",
       "migrations_dir": "./migrations"
+    }
+  ],
+
+  // Uploaded images (posters, future diary photos). Public read access is
+  // on at the bucket level via its r2.dev URL — writes still only happen
+  // through the Access-gated /api/admin/upload route, never directly.
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "bobata-media"
     }
   ]
 

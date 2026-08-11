@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { ImageUploadField } from "./ImageUploadField";
 
 export interface ListItem {
   title: string;
@@ -89,14 +90,11 @@ export function ListItemsForm({
               <div className="ml-11 flex flex-col gap-2">
                 <label className="flex flex-col gap-1">
                   <span className="text-[9px] tracking-[.2em] text-dim">
-                    IMAGE URL — pasted link, must start with https://
+                    IMAGE — upload a file, or paste a link
                   </span>
-                  <input
-                    className={inputClass}
+                  <ImageUploadField
                     value={item.imageUrl ?? ""}
-                    onChange={(e) => setItem(i, "imageUrl", e.target.value)}
-                    placeholder="https://…"
-                    maxLength={500}
+                    onChange={(url) => setItem(i, "imageUrl", url)}
                   />
                 </label>
                 <label className="flex flex-col gap-1">
