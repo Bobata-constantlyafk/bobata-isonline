@@ -48,7 +48,7 @@ export function meta(_: Route.MetaArgs) {
 
 export default function About() {
   return (
-    <div className="flex flex-col gap-[54px] px-[60px] pb-[120px] pt-[80px]">
+    <div className="flex flex-col gap-[54px] page-px pb-[120px] pt-[80px]">
       <PageHeader
         title="ABOUT"
         kicker="// FRAGMENTS, NOT A BIO"

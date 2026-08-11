@@ -22,7 +22,7 @@ export default function Home() {
   const { text, chars, progress, log } = useDecodeName(0.3);
 
   return (
-    <div className="relative flex flex-1 flex-col justify-center overflow-hidden px-[60px] py-[70px]">
+    <div className="relative flex flex-1 flex-col justify-center overflow-hidden page-px py-[70px]">
       <div
         aria-hidden
         className="pointer-events-none absolute left-0 right-0 top-0 h-[120px] animate-sweep"

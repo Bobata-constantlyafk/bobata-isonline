@@ -13,7 +13,7 @@ export function meta(_: Route.MetaArgs) {
 
 export default function Blog() {
   return (
-    <div className="flex flex-col gap-[50px] px-[60px] pb-[120px] pt-[80px]">
+    <div className="flex flex-col gap-[50px] page-px pb-[120px] pt-[80px]">
       <PageHeader title="BLOG" kicker="// TWO CHANNELS" kickerColor="#00e5ff" />
 
       <section className="flex flex-col gap-4">

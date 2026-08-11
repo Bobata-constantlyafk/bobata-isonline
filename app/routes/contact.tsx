@@ -78,7 +78,7 @@ export default function Contact() {
     "border border-border bg-[#0a0b0d] p-[13px] font-mono text-[14px] text-bright outline-none focus:border-acid-cyan";
 
   return (
-    <div className="flex flex-col gap-10 px-[60px] pb-[120px] pt-[90px]">
+    <div className="flex flex-col gap-10 page-px pb-[120px] pt-[90px]">
       <PageHeader
         title="CONNECT"
         kicker="// OPEN CHANNEL"

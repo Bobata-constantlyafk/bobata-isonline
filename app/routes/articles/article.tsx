@@ -149,7 +149,7 @@ export default function Article() {
 
   if (!article) {
     return (
-      <div className="flex flex-1 flex-col gap-6 px-[60px] pb-[120px] pt-[70px]">
+      <div className="flex flex-1 flex-col gap-6 page-px pb-[120px] pt-[70px]">
         <span className="font-display text-[46px] text-bright">NOT FOUND</span>
         <Link
           to="/articles"
@@ -166,7 +166,7 @@ export default function Article() {
 
   return (
     <div
-      className="flex-1 px-[60px] pb-[120px] pt-[70px]"
+      className="flex-1 page-px pb-[120px] pt-[70px]"
       style={{ backgroundImage: skin.pageBackground }}
     >
       {isList ? (

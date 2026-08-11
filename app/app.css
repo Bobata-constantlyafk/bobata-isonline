@@ -140,6 +140,33 @@ a:hover {
   color: var(--color-void);
 }
 
+/* Mobile fix, in one reusable move: every route pads its sides with this
+   instead of a fixed px-[60px]. clamp() means desktop is pixel-identical
+   to before (it maxes out at exactly 60px the moment the vw term would
+   exceed it) while narrow screens get real breathing room instead of
+   losing a third of a 375px viewport to fixed padding. Any future page
+   should reach for this class rather than a fixed px value. */
+@utility page-px {
+  padding-left: clamp(20px, 6vw, 60px);
+  padding-right: clamp(20px, 6vw, 60px);
+}
+
+/* Same reusable move as page-px, for grids: below `sm` a broken/asymmetric
+   column grid (see work.tsx) has tracks too narrow for real content — some
+   tiles only span 3 of 12 columns. Rather than rewrite each grid's per-tile
+   column/row spans for phone, this single rule stacks every direct child
+   full-width and lets rows size to content. Desktop (sm and up) is
+   completely untouched — add the class to any future broken grid. */
+@media (max-width: 639px) {
+  .tile-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .tile-grid > * {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+  }
+}
+
 /* Chrome text gradient with instant (no-transition) hover override — used
    for the hero's per-character spans. A class, not inline styles, because
    the hover state must switch background-clip off entirely (see README:

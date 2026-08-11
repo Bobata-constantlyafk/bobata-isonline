@@ -51,7 +51,9 @@ export function Heading({
       className={skin.h1Split ? "hover-split m-0 font-display" : "m-0 font-display"}
       style={
         {
-          fontSize: size,
+          // clamp() floor, not a breakpoint jump — see PageHeader.tsx for
+          // why. `size` (46/48) stays the exact desktop value.
+          fontSize: `clamp(26px, 8vw, ${size}px)`,
           lineHeight: size >= 46 ? 1.2 : 1.25,
           ...(skin.h1Chrome ? chromeTextStyle : { color: skin.h1Color }),
           "--split": skin.h1Split,

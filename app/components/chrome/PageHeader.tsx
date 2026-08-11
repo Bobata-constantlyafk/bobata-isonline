@@ -12,8 +12,16 @@ export function PageHeader({
   kickerColor: string;
 }) {
   return (
-    <div className="flex items-baseline gap-5">
-      <span className="font-display text-[62px]" style={chromeTextStyle}>
+    <div className="flex flex-wrap items-baseline gap-5">
+      {/* clamp() rather than a breakpoint jump: 62px is the desktop ceiling,
+          not a fixed value, so this never overflows a narrow viewport and
+          needs no separate mobile-only rule. flex-wrap is a zero-cost
+          safety net — it only engages if the kicker still can't fit
+          beside the shrunk title. */}
+      <span
+        className="font-display text-[clamp(28px,9vw,62px)]"
+        style={chromeTextStyle}
+      >
         {title}
       </span>
       <span

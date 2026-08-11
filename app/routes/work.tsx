@@ -121,10 +121,10 @@ export function meta(_: Route.MetaArgs) {
 
 export default function Work() {
   return (
-    <div className="flex flex-col gap-[46px] px-[60px] pb-[120px] pt-[80px]">
+    <div className="flex flex-col gap-[46px] page-px pb-[120px] pt-[80px]">
       <PageHeader title="WORK" kicker="// 06 ARTIFACTS" kickerColor="#a3ff12" />
 
-      <div className="grid grid-cols-12 gap-5 [grid-auto-rows:116px]">
+      <div className="tile-grid grid grid-cols-12 gap-5 [grid-auto-rows:116px]">
         {TILES.map((tile) => {
           if (tile.kind === "bar") {
             return (

@@ -49,9 +49,10 @@ function RailFooter() {
 
 /**
  * Persistent HUD panel bolted to the left of every route. Desktop keeps the
- * README's fixed 246px sticky column; below the `rail` breakpoint (1100px,
- * unbuilt in the source design) it collapses into a top strip with a
- * disclosure drawer so it never squeezes page content.
+ * README's fixed 246px sticky column; between `sm` and `rail` (640-1100px)
+ * it collapses into a top strip with a disclosure drawer; below `sm` it's
+ * gone entirely — a phone screen has no room for a HUD rail on top of
+ * everything else, and the widgets aren't essential to reading the page.
  */
 export function Rail() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -69,7 +70,7 @@ export function Rail() {
 
       <div
         style={{ backgroundImage: RAIL_GRADIENT }}
-        className="sticky top-0 z-20 border-b border-border rail:hidden"
+        className="sticky top-0 z-20 hidden border-b border-border sm:max-rail:block"
       >
         <button
           type="button"

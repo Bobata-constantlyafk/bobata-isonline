@@ -31,7 +31,7 @@ export function meta(_: Route.MetaArgs) {
 
 export default function ArticlesIndex() {
   return (
-    <div className="flex flex-col gap-[46px] px-[60px] pb-[120px] pt-[80px]">
+    <div className="flex flex-col gap-[46px] page-px pb-[120px] pt-[80px]">
       <PageHeader
         title="ARTICLES"
         kicker="// COLLECT ALL SIX"
