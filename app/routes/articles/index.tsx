@@ -38,7 +38,7 @@ export default function ArticlesIndex() {
         kickerColor="#ff00a8"
       />
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="tile-grid grid grid-cols-3 gap-6">
         {ARTICLES.map(({ slug, frontmatter, skin }, i) => (
           <Link
             key={slug}

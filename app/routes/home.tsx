@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Link } from "react-router";
 import { DecodeName } from "~/components/hero/DecodeName";
 import { useDecodeName } from "~/components/hero/useDecodeName";
@@ -69,16 +70,44 @@ export default function Home() {
             under all of it, and films taken apart frame by frame.
           </p>
 
-          <div className="flex gap-[14px]">
+          {/* clamp() padding/font, same reusable move as page-px — desktop
+              stays at the old px-6/py-[13px]/text-[11px] values (the
+              ceilings below), narrow screens shrink both buttons enough
+              that "TRANSMISSIONS" plus its .3em tracking stops crowding
+              the panel edge. */}
+          <div
+            className="flex flex-wrap gap-[14px]"
+            style={
+              {
+                "--btn-px": "clamp(14px, 4vw, 24px)",
+                "--btn-py": "clamp(9px, 2vw, 13px)",
+                "--btn-fs": "clamp(9px, 2.4vw, 11px)",
+              } as CSSProperties
+            }
+          >
             <Link
               to="/work"
-              className="btn-outline-cyan px-6 py-[13px] font-mono text-[11px] tracking-[.3em]"
+              className="btn-outline-cyan font-mono tracking-[.3em]"
+              style={{
+                paddingLeft: "var(--btn-px)",
+                paddingRight: "var(--btn-px)",
+                paddingTop: "var(--btn-py)",
+                paddingBottom: "var(--btn-py)",
+                fontSize: "var(--btn-fs)",
+              }}
             >
               ENTER THE LAIR
             </Link>
             <Link
               to="/articles"
-              className="btn-outline-ghost px-6 py-[13px] font-mono text-[11px] tracking-[.3em]"
+              className="btn-outline-ghost font-mono tracking-[.3em]"
+              style={{
+                paddingLeft: "var(--btn-px)",
+                paddingRight: "var(--btn-px)",
+                paddingTop: "var(--btn-py)",
+                paddingBottom: "var(--btn-py)",
+                fontSize: "var(--btn-fs)",
+              }}
             >
               TRANSMISSIONS
             </Link>

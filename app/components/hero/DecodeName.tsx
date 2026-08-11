@@ -9,7 +9,12 @@
  */
 // clamp() ceiling, not a breakpoint jump — see PageHeader.tsx. 96px is the
 // desktop value, untouched above the width where the vw term crosses it.
-const NAME_SIZE = "clamp(40px, 13vw, 96px)";
+// Floor and slope both lowered from the original clamp(40px,13vw,96px):
+// the widest scripts in SCRIPTS (Latin "BOBATA", Greek "ΜΠΟΜΠΑΤΑ") were
+// only 20-40px from the edge of the panel at 375px, razor-thin enough to
+// clip on real phones. This keeps the same desktop ceiling but gives real
+// margin below ~500px.
+const NAME_SIZE = "clamp(30px, 10vw, 96px)";
 
 export function DecodeName({ text, chars }: { text: string; chars: string[] }) {
   return (

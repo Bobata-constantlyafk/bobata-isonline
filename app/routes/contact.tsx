@@ -179,7 +179,7 @@ export default function Contact() {
         </form>
       </div>
 
-      <div className="flex gap-[34px] text-[11px] tracking-[.26em] text-muted">
+      <div className="flex flex-wrap gap-x-[34px] gap-y-3 text-[11px] tracking-[.26em] text-muted">
         {LINKS.map((link) => (
           <a key={link.label} href={link.href}>
             {link.label}
